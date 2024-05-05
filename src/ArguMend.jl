@@ -107,7 +107,7 @@ This will skip subsequences which are completely
 contained in a larger subsequence, and offset
 at the same distance.
 """
-function all_matching_subsequences(a, b)
+function all_matching_subsequences(a::AbstractVector, b::AbstractVector)
     # Most kwargs are pretty short, and this will be evaluated
     # only in the scope of bad function signatures,
     # so we can just brute force it.
@@ -138,6 +138,12 @@ function all_matching_subsequences(a, b)
         end
     end
     return matches
+end
+
+function all_matching_subsequences(a::AbstractString, b::AbstractString)
+    # Convert to Vector{Char}, to avoid the weird indices
+    # of unicode strings
+    return all_matching_subsequences(collect(a), collect(b))
 end
 
 @testitem "Test all matching subsequences" begin
