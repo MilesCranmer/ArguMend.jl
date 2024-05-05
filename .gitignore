@@ -4,3 +4,7 @@
 /Manifest.toml
 /docs/Manifest.toml
 /docs/build/
+requirements-dev.lock
+requirements.lock
+.vscode/settings.json
+pyproject.toml
