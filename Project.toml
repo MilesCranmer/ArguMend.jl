@@ -1,0 +1,17 @@
+name = "ArguMend"
+uuid = "c85fd23e-5eaf-479f-abdc-5c469c653c21"
+authors = ["MilesCranmer <miles.cranmer@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
+
+[compat]
+MacroTools = "0.5"
+julia = "1.6"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
