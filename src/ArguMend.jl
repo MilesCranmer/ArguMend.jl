@@ -174,6 +174,18 @@ end
         Match(a_start=3, b_start=1, len=2),
     ]
 
+    # Unicode strings
+    @test all_matching_subsequences("α", "αβ") == [
+        Match(a_start=1, b_start=1, len=1),
+    ]
+
+    # Length should treat unicode the same as ASCII, which
+    # is unlike standard Julia strings! This is so that
+    # matching does not act weirdly when kwargs have unicode.
+    @test all_matching_subsequences("αβγ", "αβg") == [
+        Match(a_start=1, b_start=1, len=2),
+    ]
+
     # Edge Cases
     @test isempty(all_matching_subsequences("", "abc"))
     @test isempty(all_matching_subsequences("abc", ""))
@@ -181,8 +193,24 @@ end
 end
 
 
-
 function similarity_ratio(a, b)
+    if isempty(a) && isempty(b)
+        return 1.0
+    end
+    matches = all_matching_subsequences(a, b)
+    sum_len = sum(m -> m.len, matches; init=0)
+    return 2.0 * sum_len / (length(a) + length(b))
+end
+
+@testitem "Test similarity ratio" begin
+    using ArguMend: similarity_ratio
+
+    @test similarity_ratio("abc", "abc") == 1.0
+    @test similarity_ratio("abc", "def") == 0.0
+    @test similarity_ratio("abcd", "bcde") == 0.75
+
+    # Edge cases
+    @test similarity_ratio("", "") == 1.0
 end
 
 end
