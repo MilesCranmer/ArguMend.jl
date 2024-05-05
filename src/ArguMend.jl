@@ -76,9 +76,9 @@ end
 """Find longest matching sequence between a and b"""
 function longest_match(a, b)
     matches = all_matching_subsequences(a, b)
-    max_len = maximum(m -> m.len, matches; init=0)
+    max_len = maximum(m -> m.len, matches; init = 0)
     if max_len == 0
-        return Match(a_start=firstindex(a), b_start=firstindex(b), len=0)
+        return Match(a_start = firstindex(a), b_start = firstindex(b), len = 0)
     else
         return first(filter(m -> m.len == max_len, matches))
     end
@@ -87,17 +87,17 @@ end
 @testitem "Test longest match" begin
     using ArguMend: longest_match, Match
 
-    @test longest_match("abc", "bcd") == Match(a_start=2, b_start=1, len=2)
+    @test longest_match("abc", "bcd") == Match(a_start = 2, b_start = 1, len = 2)
 
     # Prefers the first match:
-    @test longest_match("1234", "12 34") == Match(a_start=1, b_start=1, len=2)
+    @test longest_match("1234", "12 34") == Match(a_start = 1, b_start = 1, len = 2)
 
     # No match will have len 0
-    @test longest_match("1", "2") == Match(a_start=1, b_start=1, len=0)
+    @test longest_match("1", "2") == Match(a_start = 1, b_start = 1, len = 0)
 
     # Works for other collections
     @test longest_match([1, 2, 3], [2, 3, 4, 5, 6, 1, 2, 3]) ==
-          Match(a_start=1, b_start=6, len=3)
+          Match(a_start = 1, b_start = 6, len = 3)
 end
 
 """
@@ -149,12 +149,14 @@ end
 @testitem "Test all matching subsequences" begin
     using ArguMend: all_matching_subsequences, Match
 
-    @test all_matching_subsequences("abc", "abc") == [Match(a_start=1, b_start=1, len=3)]
-    @test all_matching_subsequences([1, 2, 3], [1, 2, 3]) == [Match(a_start=1, b_start=1, len=3)]
+    @test all_matching_subsequences("abc", "abc") ==
+          [Match(a_start = 1, b_start = 1, len = 3)]
+    @test all_matching_subsequences([1, 2, 3], [1, 2, 3]) ==
+          [Match(a_start = 1, b_start = 1, len = 3)]
     @test all_matching_subsequences("abc", "abababc") == [
-        Match(a_start=1, b_start=1, len=2),
-        Match(a_start=1, b_start=3, len=2),
-        Match(a_start=1, b_start=5, len=3),
+        Match(a_start = 1, b_start = 1, len = 2),
+        Match(a_start = 1, b_start = 3, len = 2),
+        Match(a_start = 1, b_start = 5, len = 3),
     ]
 
     # No Matches
@@ -163,33 +165,30 @@ end
 
     # Overlapping matches
     @test all_matching_subsequences("aaaa", "aa") == [
-        Match(a_start=1, b_start=1, len=2),
-        Match(a_start=1, b_start=2, len=1),
-        Match(a_start=2, b_start=1, len=2),
-        Match(a_start=3, b_start=1, len=2),
-        Match(a_start=4, b_start=1, len=1),
+        Match(a_start = 1, b_start = 1, len = 2),
+        Match(a_start = 1, b_start = 2, len = 1),
+        Match(a_start = 2, b_start = 1, len = 2),
+        Match(a_start = 3, b_start = 1, len = 2),
+        Match(a_start = 4, b_start = 1, len = 1),
     ]
     @test all_matching_subsequences([1, 2, 1, 2], [1, 2]) == [
-        Match(a_start=1, b_start=1, len=2),
-        Match(a_start=3, b_start=1, len=2),
+        Match(a_start = 1, b_start = 1, len = 2),
+        Match(a_start = 3, b_start = 1, len = 2),
     ]
 
     # Unicode strings
-    @test all_matching_subsequences("α", "αβ") == [
-        Match(a_start=1, b_start=1, len=1),
-    ]
+    @test all_matching_subsequences("α", "αβ") == [Match(a_start = 1, b_start = 1, len = 1)]
 
     # Length should treat unicode the same as ASCII, which
     # is unlike standard Julia strings! This is so that
     # matching does not act weirdly when kwargs have unicode.
-    @test all_matching_subsequences("αβγ", "αβg") == [
-        Match(a_start=1, b_start=1, len=2),
-    ]
+    @test all_matching_subsequences("αβγ", "αβg") ==
+          [Match(a_start = 1, b_start = 1, len = 2)]
 
     # Edge Cases
     @test isempty(all_matching_subsequences("", "abc"))
     @test isempty(all_matching_subsequences("abc", ""))
-    @test all_matching_subsequences("a", "a") == [Match(a_start=1, b_start=1, len=1)]
+    @test all_matching_subsequences("a", "a") == [Match(a_start = 1, b_start = 1, len = 1)]
 end
 
 
@@ -198,7 +197,7 @@ function similarity_ratio(a, b)
         return 1.0
     end
     matches = all_matching_subsequences(a, b)
-    sum_len = sum(m -> m.len, matches; init=0)
+    sum_len = sum(m -> m.len, matches; init = 0)
     return 2.0 * sum_len / (length(a) + length(b))
 end
 
