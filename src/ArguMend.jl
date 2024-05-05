@@ -1,11 +1,114 @@
 module ArguMend
 
+export @argumend
+
+using MacroTools: splitdef, combinedef
+using TestItems: @testitem
+
 macro argumend(args...)
     return esc(argumend(args...))
 end
 
+"""Errors coming from the construction of an ArguMend function."""
+struct ArguMendLoadError <: Exception
+    msg::String
+end
+
 function argumend(args...)
-    return :()
+    argumend_options, raw_fdef = args[begin:end-1], args[end]
+    fdef = splitdef(raw_fdef)
+    _validate_argumend(fdef)
+    kwarg_strings = string.(fdef[:kwargs])
+    return combinedef(fdef)
+end
+
+
+@testitem "Basic usage" begin
+    using ArguMend
+
+    @argumend f(; kw) = kw + 1
+
+    # @test_throws UndefKeywordError f(kww = 2)
+    # if VERSION >= v"1.9"
+    #     @test_throws "did you mean" f(kww = 2)
+    # end
+end
+
+
+function _validate_argumend(fdef)
+    if !haskey(fdef, :kwargs) || isempty(fdef[:kwargs])
+        throw(
+            ArguMendLoadError(
+                "syntax error: could not find any keywords in function definition",
+            ),
+        )
+    end
+    if any(kw -> kw isa Expr && kw.head == :(...), fdef[:kwargs])
+        throw(
+            ArguMendLoadError(
+                "syntax error: keyword splatting is not permitted in an `@argumend` function definition",
+            ),
+        )
+    end
+    return nothing
+end
+
+@testitem "Error checking" begin
+    using ArguMend
+    using ArguMend: ArguMendLoadError, argumend
+
+    @test_throws ArguMendLoadError argumend(:(f() = nothing))
+    @test_throws ArguMendLoadError argumend(:(f(; kws...) = kws))
+
+    if VERSION >= v"1.9"
+        @test_throws "could not find any keywords" argumend(:(f() = nothing))
+        @test_throws "keyword splatting is not permitted" argumend(:(f(; kws...) = kws))
+    end
+end
+
+Base.@kwdef struct Match
+    a_start::Int
+    b_start::Int
+    len::Int
+end
+
+
+"""Find longest matching sequence between a and b"""
+function longest_match(a, b)
+    # Most kwargs are pretty short, and this will be evaluated
+    # only in the scope of bad function signatures,
+    # so we can just brute force it.
+    match = Match(a_start = firstindex(a), b_start = firstindex(b), len = 0)
+    for a_start in eachindex(a), b_start in eachindex(b)
+        len = 0
+        a_i = a_start
+        b_i = b_start
+        while a_i <= lastindex(a) && b_i <= lastindex(b) && a[a_i] == b[b_i]
+            len += 1
+            a_i = nextind(a, a_i)
+            b_i = nextind(b, b_i)
+        end
+        if len > match.len
+            match = Match(; a_start, b_start, len)
+        end
+    end
+    return match
+end
+
+@testitem "Test longest match" begin
+    using ArguMend: longest_match, Match
+
+    @test longest_match("abc", "bcd") == Match(a_start = 2, b_start = 1, len = 2)
+
+    # Prefers the first match:
+    @test longest_match("1234", "12 34") == Match(a_start = 1, b_start = 1, len = 2)
+
+    # No match will have len 0
+    @test longest_match("1", "2") == Match(a_start = 1, b_start = 1, len = 0)
+
+    # Works for other collections
+    @test longest_match([1, 2, 3], [2, 3, 4, 5, 6, 1, 2, 3]) ==
+          Match(a_start = 1, b_start = 6, len = 3)
 end
 
 end

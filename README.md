@@ -9,13 +9,12 @@
 
 </div>
   
-ArguMend.jl implements a simple macro for generating
-keyword helpers in a function, which automatically suggest
+ArguMend.jl lets you automatically suggest
 similarly-spelled keywords.
 
 ```julia
-@argumend function f(; my_kw1, other_kw2)
-    # body
+@argumend function f(; kw)
+    kw + 1
 end
 ```
 
@@ -23,5 +22,5 @@ this will fill in some logic that will result in a nicer
 mechanism for invalid keywords:
 
 ```julia
-
+julia> f(kwww=2)
 ```
