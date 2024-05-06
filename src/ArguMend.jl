@@ -157,6 +157,8 @@ end
         return nothing
     end
 
+    @test f(1, 2, 3) == nothing
+
     let g = () -> f(1, 2, 3; iterations = 2)
         @test_throws SuggestiveMethodError g()
         if VERSION >= v"1.9"

@@ -21,7 +21,8 @@ This results in a nicer mechanism for mistyped API calls:
 
 ```julia
 julia> f(1, 2; iterations=1)
-ERROR: SuggestiveMethodError: in call to `f`, found unsupported keyword argument: `iterations`, perhaps you meant `niterations`
+ERROR: SuggestiveMethodError: in call to `f`, found unsupported
+       keyword argument: `iterations`, perhaps you meant `niterations`
 
 Stacktrace:
  [1] f(a::Int64, b::Int64; niterations::Int64, invalid_kws#231::@Kwargs{iterations::Int64})
