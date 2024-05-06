@@ -5,6 +5,35 @@ export @argumend
 using MacroTools: splitdef, combinedef
 using TestItems: @testitem
 
+"""
+    @argumend [funcdef]
+
+This macro lets you automatically suggest
+similarly-spelled keywords:
+
+```julia
+@argumend function f(a, b; niterations=10)
+    a + b - niterations
+end
+```
+
+which results in a nicer mechanism for invalid keywords:
+
+```julia
+julia> f(1, 2; iterations=1)
+ERROR: SuggestiveMethodError: in call to `f`, found unsupported keyword argument: `iterations`, perhaps you meant `niterations`
+
+Stacktrace:
+ [1] f(a::Int64, b::Int64; niterations::Int64, invalid_kws#231::@Kwargs{iterations::Int64})
+   @ Main ~/PermaDocuments/ArguMend.jl/src/ArguMend.jl:69
+ [2] top-level scope
+   @ REPL[14]:1
+```
+
+This function computes closeness between the mistyped keyword argument
+by counting the maximum number of matching subsequences with all the other
+keyword arguments.
+"""
 macro argumend(args...)
     return esc(argumend(args...))
 end
