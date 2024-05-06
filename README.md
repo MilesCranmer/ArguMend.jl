@@ -10,17 +10,29 @@
 </div>
   
 ArguMend.jl lets you automatically suggest
-similarly-spelled keywords.
+similarly-spelled keywords:
 
 ```julia
-@argumend function f(; kw)
-    kw + 1
+@argumend function f(a, b; niterations=10)
+    a + b - niterations
 end
 ```
 
-this will fill in some logic that will result in a nicer
-mechanism for invalid keywords:
+which results in a nicer mechanism for invalid keywords:
 
 ```julia
-julia> f(kwww=2)
+julia> f(1, 2; iterations=1)
+ERROR: SuggestiveMethodError: in call to `f`, found unsupported keyword argument: `iterations`, perhaps you meant `niterations`
+
+Stacktrace:
+ [1] f(a::Int64, b::Int64; niterations::Int64, invalid_kws#231::@Kwargs{iterations::Int64})
+   @ Main ~/PermaDocuments/ArguMend.jl/src/ArguMend.jl:69
+ [2] top-level scope
+   @ REPL[14]:1
 ```
+
+This is most useful for large interfaces with many possible options.
+
+This mechanism is very likely zero-cost, as it relies on adding splatted
+keyword arguments to the function call, which will re-compile the function
+if the keyword arguments change.

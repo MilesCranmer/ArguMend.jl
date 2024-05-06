@@ -28,7 +28,7 @@ end
 function Base.showerror(io::IO, e::SuggestiveMethodError)
     print(io, "SuggestiveMethodError: ")
     print(io, e.msg)
-    print(io, "\n\n")
+    print(io, "\n")
 end
 
 function argumend(args...)
