@@ -133,7 +133,7 @@ ERROR: SuggestiveMethodError: in call to `Options`, found unsupported keyword ar
       `npopulations`, perhaps you meant `populations` or `population_size`
 ```
 
-rather than the standard Julia output:
+rather than the standard Julia output (scroll to the right):
 
 ```julia
 ERROR: MethodError: no method matching Options(; npopulations::Int64)
