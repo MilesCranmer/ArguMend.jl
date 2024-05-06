@@ -10,42 +10,154 @@ macro argumend(args...)
 end
 
 """Errors coming from the construction of an ArguMend function."""
-struct ArguMendLoadError <: Exception
+struct ArguMendMacroError <: Exception
     msg::String
+end
+
+struct SuggestiveError <: Exception
+    msg::String
+end
+
+"""MethodError but with suggestions for alternative keywords."""
+struct SuggestiveMethodError <: Exception
+    msg::String
+    f::Any
+    SuggestiveMethodError(msg, @nospecialize(f)) = new(msg, f)
+end
+
+function Base.showerror(io::IO, e::SuggestiveMethodError)
+    print(io, "SuggestiveMethodError: ")
+    print(io, e.msg)
+    print(io, "\n\n")
 end
 
 function argumend(args...)
     argumend_options, raw_fdef = args[begin:end-1], args[end]
+    if !isempty(argumend_options)
+        @warn "Found options passed to argumend, but no options available at this time."
+    end
     fdef = splitdef(raw_fdef)
     _validate_argumend(fdef)
-    kwarg_strings = string.(fdef[:kwargs])
+    name = fdef[:name]
+    # args = fdef[:args]
+    kwargs = fdef[:kwargs]
+    body = fdef[:body]
+
+    kwarg_strings = let
+        map(kwargs) do kw
+            if kw isa Symbol
+                string(kw)
+            elseif kw isa Expr && kw.head == :(kw)
+                string(kw.args[1])
+            else
+                error("Unexpected format for kwarg: $kw")
+                ""
+            end
+        end
+    end
+    tuple_kwarg_strings = Tuple(kwarg_strings)
+
+    # tuple_args = Tuple(args)
+
+    @gensym invalid_kws msg
+    kwargs = vcat(kwargs, :($(invalid_kws)...))
+
+    body = quote
+        if !isempty($invalid_kws)
+            let $msg = $(suggest_alternative_kws)($name, $invalid_kws, $tuple_kwarg_strings)
+                throw($(SuggestiveMethodError)($msg, $name))
+            end
+        end
+        $body
+    end
+
+    fdef[:kwargs] = kwargs
+    fdef[:body] = body
+
     return combinedef(fdef)
+end
+
+function suggest_alternative_kws(name, invalid_kws, true_kwarg_strings)
+    msg = String[]
+    for k in keys(invalid_kws)
+        close_matches = extract_close_matches(string(k), true_kwarg_strings)
+        if isempty(close_matches)
+            push!(
+                msg,
+                "found unsupported keyword argument: `$k`, without any close matches",
+            )
+        else
+            wrapped_names = map(s -> "`$s`", close_matches)
+            push!(
+                msg,
+                "found unsupported keyword argument: `$k`, perhaps you meant $(join(wrapped_names, " or "))",
+            )
+        end
+    end
+    if length(msg) == 1
+        return "in call to `$name`, " * msg[1]
+    else
+        return "in call to `$name`, \n\t " * join(msg, ",\n\t and also ")
+    end
 end
 
 
 @testitem "Basic usage" begin
-    using ArguMend
+    using ArguMend: @argumend, SuggestiveMethodError
 
-    @argumend f(; kw) = kw + 1
+    @argumend f(; kw = 1) = kw + 1
 
-    # @test_throws UndefKeywordError f(kww = 2)
-    # if VERSION >= v"1.9"
-    #     @test_throws "did you mean" f(kww = 2)
-    # end
+    @test_throws SuggestiveMethodError f(kww = 2)
+    @test_throws SuggestiveMethodError f(b = 2)
+    if VERSION >= v"1.9"
+        @test_throws "perhaps you meant `kw`" f(kww = 2)
+        @test_throws "without any close matches" f(b = 2)
+    end
+
+    # With more complex method
+    @argumend function f(
+        a,
+        b,
+        c;
+        niterations = 1,
+        ncycles_per_iteration = 1,
+        niterations_per_cycle = 1,
+        abcdef = 1,
+        iter = 1,
+    )
+        return nothing
+    end
+
+    let g = () -> f(1, 2, 3; iterations = 2)
+        @test_throws SuggestiveMethodError g()
+        if VERSION >= v"1.9"
+            @test_throws "in call to `f`" g()
+            @test_throws "found unsupported keyword argument: `iterations`, perhaps you meant `niterations` or `niterations_per_cycle`" g()
+        end
+    end
+
+    # Multiple suggestions
+    let g = () -> f(1, 2, 3; iterations = 1, abc = 1, blahblahblah = 1)
+        @test_throws SuggestiveMethodError g()
+        if VERSION >= v"1.9"
+            @test_throws "and also found unsupported keyword argument: `abc`, perhaps you meant `abcdef`" g()
+            @test_throws "and also found unsupported keyword argument: `blahblahblah`, without any close matches" g()
+        end
+    end
 end
 
 
 function _validate_argumend(fdef)
     if !haskey(fdef, :kwargs) || isempty(fdef[:kwargs])
         throw(
-            ArguMendLoadError(
+            ArguMendMacroError(
                 "syntax error: could not find any keywords in function definition",
             ),
         )
     end
     if any(kw -> kw isa Expr && kw.head == :(...), fdef[:kwargs])
         throw(
-            ArguMendLoadError(
+            ArguMendMacroError(
                 "syntax error: keyword splatting is not permitted in an `@argumend` function definition",
             ),
         )
@@ -55,10 +167,10 @@ end
 
 @testitem "Error checking" begin
     using ArguMend
-    using ArguMend: ArguMendLoadError, argumend
+    using ArguMend: ArguMendMacroError, argumend
 
-    @test_throws ArguMendLoadError argumend(:(f() = nothing))
-    @test_throws ArguMendLoadError argumend(:(f(; kws...) = kws))
+    @test_throws ArguMendMacroError argumend(:(f() = nothing))
+    @test_throws ArguMendMacroError argumend(:(f(; kws...) = kws))
 
     if VERSION >= v"1.9"
         @test_throws "could not find any keywords" argumend(:(f() = nothing))
