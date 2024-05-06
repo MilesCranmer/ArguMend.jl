@@ -73,15 +73,23 @@ Base.@kwdef struct Match
 end
 
 
-"""Find longest matching sequence between a and b"""
+"""Find first maximal matching sequence between a and b"""
 function longest_match(a, b)
-    matches = all_matching_subsequences(a, b)
-    max_len = maximum(m -> m.len, matches; init = 0)
-    if max_len == 0
-        return Match(a_start = firstindex(a), b_start = firstindex(b), len = 0)
-    else
-        return first(filter(m -> m.len == max_len, matches))
+    match = Match(a_start = firstindex(b), b_start = firstindex(a), len = 0)
+    for a_start in eachindex(a), b_start in eachindex(b)
+        len = 0
+        a_i = a_start
+        b_i = b_start
+        while a_i <= lastindex(a) && b_i <= lastindex(b) && a[a_i] == b[b_i]
+            len += 1
+            a_i = nextind(a, a_i)
+            b_i = nextind(b, b_i)
+        end
+        if len > match.len
+            match = Match(; a_start = a_start, b_start = b_start, len)
+        end
     end
+    return match
 end
 
 @testitem "Test longest match" begin
@@ -102,48 +110,72 @@ end
 
 """
 Return a vector of all matching subsequences
-
-This will skip subsequences which are completely
-contained in a larger subsequence, and offset
-at the same distance.
 """
-function all_matching_subsequences(a::AbstractVector, b::AbstractVector)
+function all_matching_subsequences(a::Vector, b::Vector)
+    matches = _all_matching_subsequences(a, b)
+    matches = filter(m -> m.len > 0, matches)
+    # Same sorting to python difflib:
+    matches = sort(
+        matches,
+        by = m -> (m.a_start, m.a_start + m.len, m.b_start, m.b_start + m.len),
+    )
+    return matches
+end
+function all_matching_subsequences(a, b)
+    return all_matching_subsequences(collect(a), collect(b))
+end
+# ^Convert to Vector{Char}, to avoid the weird indices
+# of unicode strings
+
+function _all_matching_subsequences(a::Vector, b::Vector; offsets = (a = 0, b = 0))
+    # We compute this via recursion on the remaining
+    # subsequences after the largest match is removed.
+
     # Most kwargs are pretty short, and this will be evaluated
     # only in the scope of bad function signatures,
     # so we can just brute force it.
-    matches = Match[]
-    for a_start in eachindex(a), b_start in eachindex(b)
-        already_included = any(matches) do m
-            # First, check if same offset from start
-            # a previous sequence, and contained within the
-            # matching length
-            within_a = a_start - m.a_start < m.len
-            within_b = b_start - m.b_start < m.len
-            same_distance = (a_start - m.a_start) == (b_start - m.b_start)
-            return within_a && within_b && same_distance
-        end
-        if already_included
-            continue
-        end
-        len = 0
-        a_i = a_start
-        b_i = b_start
-        while a_i <= lastindex(a) && b_i <= lastindex(b) && a[a_i] == b[b_i]
-            len += 1
-            a_i = nextind(a, a_i)
-            b_i = nextind(b, b_i)
-        end
-        if len > 0
-            push!(matches, Match(; a_start, b_start, len))
-        end
+    if isempty(a) || isempty(b)
+        return Match[]
+    end
+    match = longest_match(a, b)
+    if match.len == 0
+        return Match[]
+    end
+    matches = [
+        Match(;
+            a_start = match.a_start + offsets.a,
+            b_start = match.b_start + offsets.b,
+            len = match.len,
+        ),
+    ]
+    a_start = match.a_start
+    b_start = match.b_start
+    a_end = a_start + match.len - 1
+    b_end = b_start + match.len - 1
+
+    # Left side
+    if a_start > firstindex(a) && b_start > firstindex(b)
+        matches = vcat(
+            matches,
+            _all_matching_subsequences(
+                a[firstindex(a):prevind(a, a_start)],
+                b[firstindex(b):prevind(b, b_start)];
+                offsets = offsets,
+            ),
+        )
+    end
+    # Right side
+    if a_end < lastindex(a) && b_end < lastindex(b)
+        matches = vcat(
+            matches,
+            _all_matching_subsequences(
+                a[nextind(a, a_end):lastindex(a)],
+                b[nextind(b, b_end):lastindex(b)];
+                offsets = (a = offsets.a + match.len, b = offsets.b + match.len),
+            ),
+        )
     end
     return matches
-end
-
-function all_matching_subsequences(a::AbstractString, b::AbstractString)
-    # Convert to Vector{Char}, to avoid the weird indices
-    # of unicode strings
-    return all_matching_subsequences(collect(a), collect(b))
 end
 
 @testitem "Test all matching subsequences" begin
@@ -153,10 +185,9 @@ end
           [Match(a_start = 1, b_start = 1, len = 3)]
     @test all_matching_subsequences([1, 2, 3], [1, 2, 3]) ==
           [Match(a_start = 1, b_start = 1, len = 3)]
-    @test all_matching_subsequences("abc", "abababc") == [
-        Match(a_start = 1, b_start = 1, len = 2),
-        Match(a_start = 1, b_start = 3, len = 2),
-        Match(a_start = 1, b_start = 5, len = 3),
+    @test all_matching_subsequences("aabc", "abababc") == [
+        Match(a_start = 1, b_start = 1, len = 1),
+        Match(a_start = 2, b_start = 5, len = 3),
     ]
 
     # No Matches
@@ -164,17 +195,14 @@ end
     @test isempty(all_matching_subsequences([1, 2, 3], [4, 5, 6]))
 
     # Overlapping matches
-    @test all_matching_subsequences("aaaa", "aa") == [
-        Match(a_start = 1, b_start = 1, len = 2),
-        Match(a_start = 1, b_start = 2, len = 1),
-        Match(a_start = 2, b_start = 1, len = 2),
-        Match(a_start = 3, b_start = 1, len = 2),
-        Match(a_start = 4, b_start = 1, len = 1),
+    @test all_matching_subsequences("aaaa", "aa") ==
+          [Match(a_start = 1, b_start = 1, len = 2)]
+    @test all_matching_subsequences("aaaa", "a a") == [
+        Match(a_start = 1, b_start = 1, len = 1),
+        Match(a_start = 2, b_start = 3, len = 1),
     ]
-    @test all_matching_subsequences([1, 2, 1, 2], [1, 2]) == [
-        Match(a_start = 1, b_start = 1, len = 2),
-        Match(a_start = 3, b_start = 1, len = 2),
-    ]
+    @test all_matching_subsequences([1, 2, 1, 2], [1, 2]) ==
+          [Match(a_start = 1, b_start = 1, len = 2)]
 
     # Unicode strings
     @test all_matching_subsequences("α", "αβ") == [Match(a_start = 1, b_start = 1, len = 1)]
