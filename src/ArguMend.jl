@@ -236,8 +236,37 @@ end
     @test similarity_ratio("abc", "def") == 0.0
     @test similarity_ratio("abcd", "bcde") == 0.75
 
+    @test similarity_ratio("ab ab", "ababa") == 0.8
+
     # Edge cases
     @test similarity_ratio("", "") == 1.0
+end
+
+
+function extract_close_matches(key, candidates; n = 3, cutoff = 0.6)
+    candidate_scores = [
+        (; candidate, score = similarity_ratio(key, candidate)) for candidate in candidates
+    ]
+    filter!(c -> c.score >= cutoff, candidate_scores)
+    sort!(candidate_scores, by = c -> c.score, rev = true)
+    remaining_candidates = [c.candidate for c in candidate_scores]
+    if length(remaining_candidates) <= n
+        return remaining_candidates
+    else
+        return remaining_candidates[1:n]
+    end
+end
+
+
+@testitem "Test close matches" begin
+    using ArguMend: extract_close_matches
+
+    mistyped_kw = "iterations"
+    candidate_kws =
+        ["niterations", "ncycles_per_iteration", "niterations_per_cycle", "abcdef", "iter"]
+
+    @test extract_close_matches(mistyped_kw, candidate_kws) ==
+          ["niterations", "niterations_per_cycle"]
 end
 
 end
