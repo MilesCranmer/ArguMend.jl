@@ -33,11 +33,11 @@ makedocs(;
     format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
         canonical = "https://astroautomata.com/ArguMend.jl",
-        edit_link = "main",
+        edit_link = "master",
         assets = String[],
     ),
     pages = ["Home" => "index.md", "API" => "api.md"],
     warnonly = [:missing_docs],
 )
 
-deploydocs(; repo = "github.com/MilesCranmer/ArguMend.jl", devbranch = "main")
+deploydocs(; repo = "github.com/MilesCranmer/ArguMend.jl", devbranch = "master")
