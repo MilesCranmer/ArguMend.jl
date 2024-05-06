@@ -9,7 +9,8 @@
 
 </div>
   
-ArguMend.jl lets you automatically suggest similarly-spelled keywords.
+ArguMend.jl injects a function with logic
+to help with mistyped keyword arguments.
 
 ```julia
 @argumend function f(a, b; niterations=10, kw2=2)
@@ -17,7 +18,7 @@ ArguMend.jl lets you automatically suggest similarly-spelled keywords.
 end
 ```
 
-This results in a nicer mechanism for mistyped API calls:
+This results in a nicer mechanism for MethodErrors:
 
 ```julia
 julia> f(1, 2; iterations=1)
@@ -25,11 +26,12 @@ ERROR: SuggestiveMethodError: in call to `f`, found unsupported
        keyword argument: `iterations`, perhaps you meant `niterations`
 ```
 
-This is most useful for large interfaces with many possible options.
+This becomes increasingly useful when calling into a
+large interface with many possible options.
 
-This mechanism is (probably) zero-cost, as it relies on adding splatted
+This mechanism has zero runtime cost, as it relies on adding splatted
 keyword arguments to the function call, which will re-compile the function
-if the keyword arguments change.
+if any keyword arguments change, skipping the ArguMend functions altogether.
 
 The core function used for computing candidate keywords is `extract_close_matches`,
 which is a clean-room pure-Julia re-implementation of Python's
