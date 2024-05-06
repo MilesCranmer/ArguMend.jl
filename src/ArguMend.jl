@@ -43,10 +43,6 @@ struct ArguMendMacroError <: Exception
     msg::String
 end
 
-struct SuggestiveError <: Exception
-    msg::String
-end
-
 """MethodError but with suggestions for alternative keywords."""
 struct SuggestiveMethodError <: Exception
     msg::String
