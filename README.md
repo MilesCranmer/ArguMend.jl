@@ -23,12 +23,6 @@ This results in a nicer mechanism for mistyped API calls:
 julia> f(1, 2; iterations=1)
 ERROR: SuggestiveMethodError: in call to `f`, found unsupported
        keyword argument: `iterations`, perhaps you meant `niterations`
-
-Stacktrace:
- [1] f(a::Int64, b::Int64; niterations::Int64, invalid_kws#231::@Kwargs{iterations::Int64})
-   @ Main ~/PermaDocuments/ArguMend.jl/src/ArguMend.jl:69
- [2] top-level scope
-   @ REPL[14]:1
 ```
 
 This is most useful for large interfaces with many possible options.
