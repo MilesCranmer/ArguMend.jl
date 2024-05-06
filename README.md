@@ -9,8 +9,7 @@
 
 </div>
   
-ArguMend.jl lets you automatically suggest
-similarly-spelled keywords:
+ArguMend.jl lets you automatically suggest similarly-spelled keywords.
 
 ```julia
 @argumend function f(a, b; niterations=10)
@@ -18,7 +17,7 @@ similarly-spelled keywords:
 end
 ```
 
-which results in a nicer mechanism for invalid keywords:
+This results in a nicer mechanism for mistyped API calls:
 
 ```julia
 julia> f(1, 2; iterations=1)
@@ -33,6 +32,10 @@ Stacktrace:
 
 This is most useful for large interfaces with many possible options.
 
-This mechanism is very likely zero-cost, as it relies on adding splatted
+This mechanism is (probably) zero-cost, as it relies on adding splatted
 keyword arguments to the function call, which will re-compile the function
 if the keyword arguments change.
+
+The core function used for computing candidate keywords is `extract_close_matches`,
+which is a clean-room pure-Julia re-implementation of Python's
+difflib.get_close_matches.
