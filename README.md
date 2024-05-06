@@ -12,15 +12,15 @@
 ArguMend.jl lets you automatically suggest similarly-spelled keywords.
 
 ```julia
-@argumend function f(a, b; niterations=10)
-    a + b - niterations
+@argumend function f(a, b; niterations=10, kw2=2)
+    a + b - niterations + kw2
 end
 ```
 
 This results in a nicer mechanism for mistyped API calls:
 
 ```julia
-julia> f(1, 2; iterations=1, abc=2)
+julia> f(1, 2; iterations=1)
 ERROR: SuggestiveMethodError: in call to `f`, found unsupported
        keyword argument: `iterations`, perhaps you meant `niterations`
 ```
