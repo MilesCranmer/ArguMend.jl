@@ -20,7 +20,7 @@ end
 This results in a nicer mechanism for mistyped API calls:
 
 ```julia
-julia> f(1, 2; iterations=1)
+julia> f(1, 2; iterations=1, abc=2)
 ERROR: SuggestiveMethodError: in call to `f`, found unsupported
        keyword argument: `iterations`, perhaps you meant `niterations`
 ```
