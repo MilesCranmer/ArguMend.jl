@@ -8,15 +8,17 @@ MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 TestItems = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
 
 [compat]
+Aqua = "0.8"
 MacroTools = "0.5"
 Test = "1.6"
-TestItems = "0.1"
 TestItemRunner = "0.2"
+TestItems = "0.1"
 julia = "1.6"
 
 [extras]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
 
 [targets]
-test = ["Test", "TestItemRunner"]
+test = ["Aqua", "Test", "TestItemRunner"]
