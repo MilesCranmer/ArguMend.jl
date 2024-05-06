@@ -58,9 +58,22 @@ end
 
 function argumend(args...)
     argumend_options, raw_fdef = args[begin:end-1], args[end]
-    if !isempty(argumend_options)
-        @warn "Found options passed to argumend, but no options available at this time."
+
+    n_suggestions = 3
+    cutoff = 0.6
+    for option in argumend_options
+        if option isa Expr && option.head == :(=)
+            if option.args[1] == :n_suggestions
+                n_suggestions = option.args[2]
+                continue
+            elseif option.args[1] == :cutoff
+                cutoff = option.args[2]
+                continue
+            end
+        end
+        throw(ArguMendMacroError("Unknown argumend option: $option"))
     end
+
     fdef = splitdef(raw_fdef)
     _validate_argumend(fdef)
     name = fdef[:name]
@@ -89,7 +102,13 @@ function argumend(args...)
 
     body = quote
         if !isempty($invalid_kws)
-            let $msg = $(suggest_alternative_kws)($name, $invalid_kws, $tuple_kwarg_strings)
+            let $msg = $(suggest_alternative_kws)(
+                    $name,
+                    $invalid_kws,
+                    $tuple_kwarg_strings;
+                    n_suggestions = $n_suggestions,
+                    cutoff = $cutoff,
+                )
                 throw($(SuggestiveMethodError)($msg, $name))
             end
         end
@@ -102,10 +121,17 @@ function argumend(args...)
     return combinedef(fdef)
 end
 
-function suggest_alternative_kws(name, invalid_kws, true_kwarg_strings)
+function suggest_alternative_kws(
+    name,
+    invalid_kws,
+    true_kwarg_strings;
+    n_suggestions = 3,
+    cutoff = 0.6,
+)
     msg = String[]
     for k in keys(invalid_kws)
-        close_matches = extract_close_matches(string(k), true_kwarg_strings)
+        close_matches =
+            extract_close_matches(string(k), true_kwarg_strings; n = n_suggestions, cutoff)
         if isempty(close_matches)
             push!(
                 msg,
@@ -171,6 +197,45 @@ end
             @test_throws "and also found unsupported keyword argument: `blahblahblah`, without any close matches" g()
         end
     end
+end
+
+@testitem "Customizing behavior" begin
+    using ArguMend: @argumend, SuggestiveMethodError
+
+    @argumend n_suggestions = 1 cutoff = 0.5 function f(; abc1 = 1, abc2 = 2, abc3 = 3)
+        return abc1 + abc2 + abc3
+    end
+    @test f(; abc1 = 1, abc2 = 1, abc3 = 1) == 3
+    @test_throws SuggestiveMethodError f(; abc = 1)
+    if VERSION >= v"1.9"
+        @test_throws "found unsupported keyword argument: `abc`, perhaps you meant `abc1`" f(;
+            abc = 1,
+        )
+        # Make sure abc2 is not suggested
+
+        msg = try
+            f(; abc = 1)
+        catch e
+            sprint((io, e) -> showerror(io, e), e)
+        end
+        @test occursin("abc1", msg)
+        @test !occursin("abc2", msg)
+        @test !occursin("abc3", msg)
+    end
+
+    @argumend cutoff = 1.0 function g(; abc1 = 1, abc2 = 2, abc3 = 3)
+        return abc1 + abc2 + abc3
+    end
+    msg = try
+        g(; abc = 1)
+    catch e
+        sprint((io, e) -> showerror(io, e), e)
+    end
+
+    # Now, nothing should show up:
+    @test !occursin("abc1", msg)
+    @test !occursin("abc2", msg)
+    @test !occursin("abc3", msg)
 end
 
 
