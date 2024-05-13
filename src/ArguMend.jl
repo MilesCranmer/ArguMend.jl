@@ -1,6 +1,6 @@
 module ArguMend
 
-export @argumend, extract_close_matches, suggest_alternative_kws
+export @argumend, extract_close_matches, suggest_alternative_kws, SuggestiveMethodError
 
 using MacroTools: splitdef, combinedef
 using TestItems: @testitem
