@@ -39,15 +39,13 @@ You can also set this up manually, without a macro:
 using ArguMend: suggest_alternative_kws, SuggestiveMethodError
 
 function f(; kws...)
-    kw_names = keys(kws)
-    valid_kw_names = [:kw1, :kw2]
-    msg = suggest_alternative_kws(kw_names, valid_kw_names)
-    if isempty(msg)
-        # all keywords are valid
-    else
+    valid_kws = [:kw1, :kw2]
+    if any(k -> !(k in valid_kws), keys(kws))
+        msg = suggest_alternative_kws(keys(kws), valid_kws)
         throw(SuggestiveMethodError(f, msg))
     end
-    ...
+
+    # Do other stuff
 end
 ```
 
