@@ -43,9 +43,9 @@ end
 
 """MethodError but with suggestions for alternative keywords."""
 struct SuggestiveMethodError <: Exception
-    msg::String
     f::Any
-    SuggestiveMethodError(msg, @nospecialize(f)) = new(msg, f)
+    msg::String
+    SuggestiveMethodError(@nospecialize(f), msg) = new(f, msg)
 end
 
 function Base.showerror(io::IO, e::SuggestiveMethodError)
@@ -107,7 +107,7 @@ function argumend(args...)
                     n_suggestions = $n_suggestions,
                     cutoff = $cutoff,
                 )
-                throw($(SuggestiveMethodError)($msg, $name))
+                throw($(SuggestiveMethodError)($name, $msg))
             end
         end
         $body
