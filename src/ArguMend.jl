@@ -1,6 +1,6 @@
 module ArguMend
 
-export @argumend, extract_close_matches
+export @argumend, extract_close_matches, suggest_alternative_kws
 
 using MacroTools: splitdef, combinedef
 using TestItems: @testitem
@@ -50,6 +50,7 @@ end
 
 function Base.showerror(io::IO, e::SuggestiveMethodError)
     print(io, "SuggestiveMethodError: ")
+    print(io, "in call to `$(e.f)`, ")
     print(io, e.msg)
     print(io, "\n")
 end
@@ -91,7 +92,7 @@ function argumend(args...)
             end
         end
     end
-    tuple_kwarg_strings = Tuple(kwarg_strings)
+    kwarg_strings_t = Tuple(kwarg_strings)
 
     # tuple_args = Tuple(args)
 
@@ -101,9 +102,8 @@ function argumend(args...)
     body = quote
         if !isempty($invalid_kws)
             let $msg = $(suggest_alternative_kws)(
-                    $name,
-                    $invalid_kws,
-                    $tuple_kwarg_strings;
+                    keys($invalid_kws),
+                    $kwarg_strings_t;
                     n_suggestions = $n_suggestions,
                     cutoff = $cutoff,
                 )
@@ -119,17 +119,39 @@ function argumend(args...)
     return combinedef(fdef)
 end
 
-function suggest_alternative_kws(
-    name,
-    invalid_kws,
-    true_kwarg_strings;
-    n_suggestions = 3,
-    cutoff = 0.6,
-)
+"""
+    suggest_alternative_kws(kws, possible_kws; n_suggestions = 3, cutoff = 0.6)
+
+Suggest alternative keywords, where `kws` is the list of keyword
+names passed to a function, and `possible_kws` is the list of
+true keyword names.
+These should be either symbols or strings.
+You can get this from the function `kws` by using `keys(kws)`.
+
+# Examples
+
+
+```julia
+function f(; kws...)
+    msg = suggest_alternative_kws(keys(kws), [:kw1, :kw2])
+    if isempty(msg)
+        return "all keywords are valid"
+    else
+        return "received some invalid keywords, here is the error:" * msg
+    end
+end
+```
+"""
+function suggest_alternative_kws(kws, possible_kws; n_suggestions = 3, cutoff = 0.6)
     msg = String[]
-    for k in keys(invalid_kws)
+    _possible_kws = string.(possible_kws)
+    for k in kws
+        has_exact_match = any(==(string(k)), _possible_kws)
+        if has_exact_match
+            continue
+        end
         close_matches =
-            extract_close_matches(string(k), true_kwarg_strings; n = n_suggestions, cutoff)
+            extract_close_matches(string(k), _possible_kws; n = n_suggestions, cutoff)
         if isempty(close_matches)
             push!(
                 msg,
@@ -143,10 +165,13 @@ function suggest_alternative_kws(
             )
         end
     end
-    if length(msg) == 1
-        return "in call to `$name`, " * msg[1]
+    num_msgs = length(msg)
+    if num_msgs == 0
+        return ""
+    elseif num_msgs == 1
+        return msg[1]
     else
-        return "in call to `$name`, \n\t " * join(msg, ",\n\t and also ")
+        return "\n\t " * join(msg, ",\n\t and also ")
     end
 end
 
@@ -195,6 +220,23 @@ end
             @test_throws "and also found unsupported keyword argument: `blahblahblah`, without any close matches" g()
         end
     end
+end
+
+@testitem "Manual calling" begin
+    using ArguMend
+    function f(; kws...)
+        msg = suggest_alternative_kws(keys(kws), [:kw1, :kw2])
+        if isempty(msg)
+            return 1
+        else
+            return msg
+        end
+    end
+    @test f(; kw1 = 1) == 1
+    @test f(; kw1 = 1, kw2 = 2) == 1
+    @test occursin("found unsupported keyword argument: `kw3`", f(; kw3 = 1))
+    @test occursin("perhaps you meant `kw1` or `kw2`", f(; kw3 = 1))
+    @show f(; kw3 = 1)
 end
 
 @testitem "Customizing behavior" begin
