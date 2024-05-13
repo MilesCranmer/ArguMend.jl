@@ -1,7 +1,7 @@
 name = "ArguMend"
 uuid = "c85fd23e-5eaf-479f-abdc-5c469c653c21"
 authors = ["MilesCranmer <miles.cranmer@gmail.com>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
