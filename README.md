@@ -33,12 +33,30 @@ This mechanism has (very likely) zero runtime cost, as it relies on adding splat
 keyword arguments to the function call, which will re-compile the function
 if any keyword arguments change, skipping the ArguMend functions altogether.
 
+You can also set this up manually, without a macro:
+
+```julia
+using ArguMend: suggest_alternative_kws, SuggestiveMethodError
+
+function f(; kws...)
+    kw_names = keys(kws)
+    valid_kw_names = [:kw1, :kw2]
+    msg = suggest_alternative_kws(kw_names, valid_kw_names)
+    if isempty(msg)
+        # all keywords are valid
+    else
+        throw(SuggestiveMethodError(f, msg))
+    end
+    ...
+end
+```
+
 The core function used for computing candidate keywords is `extract_close_matches`,
 which is a clean-room pure-Julia re-implementation of Python's
 difflib.get_close_matches.
 
 
-## Example
+## Longer example
 
 I wrote this because [SymbolicRegression.jl](https://github.com/MilesCranmer/SymbolicRegression.jl)
 has a massive number of options, and I wanted
