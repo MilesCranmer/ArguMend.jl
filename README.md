@@ -39,7 +39,7 @@ You can also set this up manually, without a macro:
 using ArguMend: suggest_alternative_kws, SuggestiveMethodError
 
 function f(; kws...)
-    valid_kws = [:kw1, :kw2]
+    valid_kws = (:kw1, :kw2, :kw3)
     if any(k -> !(k in valid_kws), keys(kws))
         msg = suggest_alternative_kws(keys(kws), valid_kws)
         throw(SuggestiveMethodError(f, msg))
