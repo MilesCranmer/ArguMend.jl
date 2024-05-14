@@ -40,8 +40,9 @@ using ArguMend: suggest_alternative_kws, SuggestiveMethodError
 
 function f(; kws...)
     valid_kws = (:kw1, :kw2, :kw3)
-    if any(k -> !(k in valid_kws), keys(kws))
-        msg = suggest_alternative_kws(keys(kws), valid_kws)
+    invalid_kws = filter(k -> !(k in valid_kws), keys(kws))
+    if !isempty(invalid_kws)
+        msg = suggest_alternative_kws(invalid_kws, valid_kws)
         throw(SuggestiveMethodError(f, msg))
     end
 
