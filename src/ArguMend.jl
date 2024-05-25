@@ -189,6 +189,7 @@ end
     end
 
     # With more complex method
+    """My docs."""
     @argumend function f(
         a,
         b,
@@ -203,6 +204,7 @@ end
     end
 
     @test f(1, 2, 3) == nothing
+    @test strip(string(@doc(f))) == "My docs."
 
     let g = () -> f(1, 2, 3; iterations = 2)
         @test_throws SuggestiveMethodError g()
